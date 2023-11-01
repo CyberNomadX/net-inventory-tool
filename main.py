@@ -23,7 +23,7 @@ def resolve_hostname(ip):
 
 def main():
     # Discover hosts on the local network (ARP scan)
-    network_range = "192.168.0.0/24"
+    network_range = "10.165.10.0/24"
     discovered_hosts = scan(network_range)
 
     # Resolve hostnames for discovered IP addresses
