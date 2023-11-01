@@ -1,30 +1,41 @@
 import socket
 import subprocess
-import scapy.all as scapy
 import ipaddress
+import os
 
 def scan(ip):
-    arp_request = scapy.ARP(pdst=ip)
-    ether = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
-    arp_request_packet = ether / arp_request
-    answered_list = scapy.srp(arp_request_packet, timeout=1, verbose=False)[0]
+    # Create a list to store discovered hosts
+    discovered_hosts = []
 
-    hosts_list = []
-    for element in answered_list:
-        host_dict = {"ip": element[1].psrc, "mac": element[1].hwsrc}
-        hosts_list.append(host_dict)
-    return hosts_list
+    # Run the ARP scan command using the 'arp -a' utility on Windows or 'arp -n' on Linux
+    if os.name == 'nt':  # Check if the OS is Windows
+        arp_command = "arp -a"
+    else:  # Assume it's Linux or a Unix-like OS
+        arp_command = "arp -n"
+
+    try:
+        arp_result = subprocess.check_output(arp_command, shell=True, universal_newlines=True)
+        lines = arp_result.strip().split('\n')
+        for line in lines[1:]:  # Skip the header line
+            parts = line.split()
+            if len(parts) >= 2:
+                ip_address = parts[0]
+                mac_address = parts[1]
+                discovered_hosts.append({"ip": ip_address, "mac": mac_address})
+    except subprocess.CalledProcessError:
+        print("Error executing the ARP scan command. Make sure you have the necessary permissions.")
+
+    return discovered_hosts
 
 def resolve_hostname(ip):
     try:
         return socket.gethostbyaddr(ip)[0]
-    except socket.herror:
+    except (socket.herror, socket.gaierror):
         return "Unknown"
 
 def main():
     # Discover hosts on the local network (ARP scan)
-    network_range = "10.165.10.0/24"
-    discovered_hosts = scan(network_range)
+    discovered_hosts = scan("")
 
     # Resolve hostnames for discovered IP addresses
     hostname_map = {}
